@@ -147,7 +147,7 @@ func (al *ApacheLog) Format(
 		case 'b':
 			defaultAppend(&start, &i, b, nilOrString(r.Header.Get("Content-Length")))
 		case 'h':
-			defaultAppend(&start, &i, b, nilOrString(r.RemoteAddr))
+			defaultAppend(&start, &i, b, nilOrString(ipaddr(r)))
 		case 'l':
 			defaultAppend(&start, &i, b, nilField)
 		case 'm':
@@ -259,4 +259,26 @@ func nilOrString(v string) string {
 		return nilField
 	}
 	return v
+}
+
+func ipaddr(r *http.Request) string {
+	ips := proxy(r)
+	if len(ips) > 0 && ips[0] != "" {
+		rip := strings.Split(ips[0], ":")
+		return rip[0]
+	}
+	ip := strings.Split(r.RemoteAddr, ":")
+	if len(ip) > 0 {
+		if ip[0] != "[" {
+			return ip[0]
+		}
+	}
+	return "127.0.0.1"
+}
+
+func proxy(r *http.Request) []string {
+	if ips := r.Header.Get("X-Forwarded-For"); ips != "" {
+		return strings.Split(ips, ",")
+	}
+	return []string{}
 }
